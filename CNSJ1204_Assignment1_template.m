@@ -241,37 +241,37 @@ num_view=6;
 Chunk=[1:length(ec_data)/num_view:length(ec_data)];
 for Y=1:2
     This_Window=WINDOW(Y_Title(Y));
-    if ~isfile("1_3-PSD_Diff_"+Y+".svg")
-    NOVERLAP = 1024/4;
-    NFFT = 1024/4;
-    Fs=Sampling_R;
-    FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5,0.5,0.5]);
-    tiledlayout(2,3)
-    %Load the data... Now here is the thing. Previously I did pwelch
-    %across the whole data. Now I want to do it fo rsections.
-    for X = 1:length(Chunk)-1
-        nexttile
-        Start_=Chunk(X);
-        End_=Chunk(X+1);
-        Data=ec_v_eo{1};
-        [Pxx_EC,F_EC] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
-        Data=ec_v_eo{2};
-        [Pxx_EO,F_EO] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
-        disp("Power domain of eyes open and closed equal? Ans: " +all(F_EC==F_EO))
-        % Pxx is 129... frequencies at 16 different powers.
-        %The the peaks indicate what spectra hit what power in the window.
-        %x is the freqs, y is power. Peaks in power.
-        Pxx_Diff=Pxx_EC-Pxx_EO;
-        plot(Pxx_Diff(1:20,:))
-        hold on
-        [Max_Vals,Indx]=max(Pxx_Diff,[],1);
-        xline(Indx)
-        title("Chunk "+X)
-        LEG=legend("Ch "+[1:min(size(Data))]);
-        LEG.Layout.Tile='east';
-        hold off
-        saveas(FIG,"1_3-PSD_Diff_"+Y,'svg')
-    end
+    if ~isfile("1_3-PSD_Diff_"+Y_Title(Y)+".svg")
+        NOVERLAP = 1024/4;
+        NFFT = 1024/4;
+        Fs=Sampling_R;
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5,0.5,0.5]);
+        tiledlayout(2,3)
+        %Load the data... Now here is the thing. Previously I did pwelch
+        %across the whole data. Now I want to do it fo rsections.
+        for X = 1:length(Chunk)-1
+            nexttile
+            Start_=Chunk(X);
+            End_=Chunk(X+1);
+            Data=ec_v_eo{1};
+            [Pxx_EC,F_EC] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
+            Data=ec_v_eo{2};
+            [Pxx_EO,F_EO] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
+            disp("Power domain of eyes open and closed equal? Ans: " +all(F_EC==F_EO))
+            % Pxx is 129... frequencies at 16 different powers.
+            %The the peaks indicate what spectra hit what power in the window.
+            %x is the freqs, y is power. Peaks in power.
+            Pxx_Diff=Pxx_EC-Pxx_EO;
+            plot(Pxx_Diff(1:20,:))
+            hold on
+            [Max_Vals,Indx]=max(Pxx_Diff,[],1);
+            xline(Indx)
+            title("Chunk "+X)
+            LEG=legend("Ch "+[1:min(size(Data))]);
+            LEG.Layout.Tile='east';
+            hold off
+        end
+        saveas(FIG,"1_3-PSD_Diff_"+Y_Title(Y),'svg')
     end
 end
 disp("Completed 1.3"+ toc)
@@ -402,17 +402,18 @@ for Y = 1:length(window_keys)
         saveas(FIG,Fig_Name)
     end
 end
-disp("2-1_Eyeball Done "+toc)
+disp("2-1_Eye Done "+toc)
 %%
 % task 2.2: The data contains 175 trials/repetitions of both sounds. How
 % many trials do you need to observe the effects? Are the effects the same
 % across the trials or are there differences between trials across the
 % experiment (e.g. the first 50 or the last 50 trials
 Key=window_keys(1);
-Fig_Name="2-2_avg_trial_progression_L_"+Key+".svg";
-if ~isfile(Fig_Name)
-    tiledlayout(3,3)
-    for Y = 1:3
+
+for Y = 1:3
+    Fig_Name="2-2_avg_trial_progression_L_"+Key+"_step_"+Y+".svg";
+    if ~isfile(Fig_Name)
+        tiledlayout(3,3)
         num_trials=4*Y;
         CH_1_avg_L=squeeze(mean(data_sound_left_filtered(1,1:num_trials,:),2)); %Left auditory cortex
         CH_2_avg_L=squeeze(mean(data_sound_left_filtered(2,1:num_trials,:),2)); %Right auditory cortex
@@ -425,6 +426,7 @@ if ~isfile(Fig_Name)
         [s1, f, t]=spectrogram(CH_1_avg_L,window,100,1024);
         s1=20*log10(abs(s1));
         imagesc(t, f, 20*log10(abs(s1)));
+        colorbar
         axis xy;                          % Put low frequencies at the bottom
         title("Left auditory cortex"+Suffix)
         ylabel("Frequency (Hz)")
@@ -433,10 +435,12 @@ if ~isfile(Fig_Name)
         [s2, f, t] =spectrogram(CH_2_avg_L,window,100,1024);
         s2=20*log10(abs(s2));
         imagesc(t, f,s2);
+        colorbar
         title("Rigth auditory cortex"+Suffix)
         axis xy;                          % Put low frequencies at the bottom
         nexttile
         imagesc(t, f, abs(s2-s1));
+        colorbar
         title("Diff"+Suffix)
         axis xy;                         % Put low frequencies at the bottom
         saveas(FIG,Fig_Name)
@@ -444,10 +448,10 @@ if ~isfile(Fig_Name)
 end
 
 Key=window_keys(1);
-Fig_Name="2-2_avg_trial_progression_R_"+Key+".svg";
-if ~isfile(Fig_Name)
-    tiledlayout(3,3)
-    for Y = 1:3
+for Y = 1:3
+    Fig_Name="2-2_avg_trial_progression_R_"+Key+"_step_"+Y+".svg";
+    if ~isfile(Fig_Name)
+        tiledlayout(3,3)
         num_trials=4*Y;
         CH_1_avg_L=squeeze(mean(data_sound_right_filtered(1,1:num_trials,:),2)); %Left auditory cortex
         CH_2_avg_L=squeeze(mean(data_sound_right_filtered(2,1:num_trials,:),2)); %Right auditory cortex
@@ -460,6 +464,7 @@ if ~isfile(Fig_Name)
         [s1, f, t]=spectrogram(CH_1_avg_L,window,100,1024);
         s1=20*log10(abs(s1));
         imagesc(t, f, 20*log10(abs(s1)));
+        colorbar
         axis xy;                          % Put low frequencies at the bottom
         title("Left auditory cortex"+Suffix)
         ylabel("Frequency (Hz)")
@@ -468,16 +473,18 @@ if ~isfile(Fig_Name)
         [s2, f, t] =spectrogram(CH_2_avg_L,window,100,1024);
         s2=20*log10(abs(s2));
         imagesc(t, f,s2);
+        colorbar
         title("Rigth auditory cortex"+Suffix)
         axis xy;                          % Put low frequencies at the bottom
         nexttile
         imagesc(t, f, abs(s2-s1));
+        colorbar
         title("Diff"+Suffix)
         axis xy;                         % Put low frequencies at the bottom
         saveas(FIG,Fig_Name)
     end
 end
-disp("2.2 Done"+toc)
+disp("2-2 Done"+toc)
 %%
 % task 2.3 (bonus): both filtered and unfiltered data are given. Tasks 2.1
 % and 2.2 can be done with filtered data (60Hz low pass-filter), but you can
