@@ -21,7 +21,7 @@ load spont_data.mat;
 %hints for the analysis
 %1.spectral estimation can be done with the function pwelch
 %[Pxx,F] = pwelch(X,WINDOW,NOVERLAP,NFFT,Fs)
-%where X is the data, window the windowfind function, noverlap the amount
+%where X is the data, window the window find function, noverlap the amount
 %of overlap between consecutive windows, nfft is te fft-size, and Fs the
 %sampling freuqnecy
 %e.g. [Pxx,F] = pwelch(ec_data',hanning(1024),1024/2,1024,sff)

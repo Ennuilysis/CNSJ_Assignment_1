@@ -1,4 +1,3 @@
-function CNSJ1204_Assignment1_template
 tic
 load spont_data.mat;
 %the mat-file contains the following
@@ -18,7 +17,7 @@ disp('data loaded')
 % conditions.
 
 power_section=[1,20];
-ec_v_eo={ec_data, eo_data};
+ec_v_eo={ec_data, eo_data}; %16 channels.
 figure('Visible', 'off','units','pixels','Position',[300, 100, 5000, 3200],Color=[1 0.5 0]);
 % I want it all.
 WINDOW=dictionary();
@@ -35,13 +34,14 @@ WINDOW("Kaiser") = {kaiser(window_len)};
 WINDOW("Chebwin") = {chebwin(window_len)};
 WINDOW("Rectwin") = {rectwin(window_len)};
 WINDOW("Bartlett") = {bartlett(window_len)};
+window_keys=keys(WINDOW);
+
 NOVERLAP = 1024/2;
 NFFT = 1024;
 Fs=Sampling_R;
 titles=["ec","eo"];
+%%
 
-
-window_keys=keys(WINDOW);
 if ~isfile("1-1_ec_v_eo_v_window.svg")
     tiledlayout(4,length(WINDOW.keys),'TileSpacing','loose', ...
         'Padding', 'compact');
@@ -50,6 +50,10 @@ if ~isfile("1-1_ec_v_eo_v_window.svg")
         for Y = 1:length(WINDOW.keys)
             Key=window_keys(Y);
             window=WINDOW(Key);
+
+            % 
+            % pxx - PSD estimate or power spectrum
+            % f - Frequencies associated with PSD estimate
             [Pxx,F] = pwelch(Data',window{:},NOVERLAP,NFFT,Fs);
             nexttile
             plot(F,Pxx)
@@ -117,9 +121,9 @@ disp("Completed 1.1 "+toc)
 
 power_section=[1,20];
 for Z = 2:5
-    FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[1 0 0.5]);
-    tiledlayout(3,2)
     if ~isfile("1_2_NOVERLAP_div_"+Z+".svg")
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[1 0 0.5]);
+        tiledlayout(3,2)
         for Y=["Hanning symmetric","Rectwin","Kaiser"]
             This_Window = WINDOW(Y);
             for X = 1:2
@@ -145,9 +149,9 @@ for Z = 2:5
 end
 
 for Z = 1:5
-    FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5 0 0.5]);
-    tiledlayout(3,3)
     if ~isfile("1_2_NFFT_div_"+Z+".svg")
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5 0 0.5]);
+        tiledlayout(3,3)
         for Y=["Hanning symmetric","Rectwin","Kaiser"]
             This_Window = WINDOW(Y);
             for X = 1:2
@@ -173,9 +177,9 @@ for Z = 1:5
 end
 
 for Z = 2:5
-    FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5 0 0.5]);
-    tiledlayout(3,3)
     if ~isfile("1_2_Both_div_"+Z+".svg")
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5 0 0.5]);
+        tiledlayout(3,3)
         for Y=["Hanning symmetric","Rectwin","Kaiser"]
             This_Window = WINDOW(Y);
             for X = 1:2
@@ -203,53 +207,74 @@ end
 disp("Completed 1.2 "+toc)
 %%
 % task 1.3: evaluate how robust the observed phenomena are within the data,
-% i.e., whether they prevail across the whole recording
+% i.e., whether they prevail across the whole recording.
 
 %Notes: It would appear eyes closed has a significant detection threshold
 %at 0.3 along certain channels. I think its best to find max, get back their
 % values and times. Find out significant time differences and values. I
 % think I will stick with hanning periodic and keiser, and compare outcomes.
 %There is also obvious relational differences between channels, but lets
-%keep it simpler. I dont have time to code more.
+%keep it simpler.
 
 %NFFT/4 gives a good, clean signal expression. Simple.
 %NOOverlap/4 gives sharp peaks, and cleaner difference between channels
-%than /2.
-%Combined, see 1_2_Both_div_4.svg, they give great, clean signaling.
+%than /2.Combined, see 1_2_Both_div_4.svg, they give great, clean signaling.
 
-%0. Normalize all the data after pwelch.
-%   Zero all signal that is below a threshold after pwelch, as good principle.
-%   Lets say drop anything below the mean value, for each individual channel.
 %1. Get max values along each channel within the 20ms at start. EO v EC.
 % What was their std distance from the original mean?
 %2. Table the difference be e0 vs EC, of 
 
-
-
 %The cross term divided by the power*power scale, indicate true
-%significance.
+%significance. % Issue is all this data is continuous. To use this signal,
+%select frequencies that are most different, from the peak seen in the graphs.
+
+%1. Ok. Pwelch gives pure power spectra. I can apply power spectra in
+%windows. I said earlier that there is a significant difference between
+%eyes closed and eyes opened, but they happen at the same time. That was
+%false. What is true is that there is significantly different max power
+%along certain channels, for eyes open and closed. Lets prove it.
 
 %Lets see if its ergodic
-X_Title=["EC","EO"];
-Y_Title=["Kaiser","Hanning Symmetric"];
+X_Title=["EC_v_EO"];
+Y_Title=["Kaiser","Hanning symmetric"];
+num_view=6;
+Chunk=[1:length(ec_data)/num_view:length(ec_data)];
 for Y=1:2
-    for X = 1:2
-        Data=ec_v_eo{X};
-        This_Window=WINDOW(Y_Title(Y));
-        NOVERLAP = 1024/4;
-        NFFT = 1024/4;
-        Fs=Sampling_R;
-        [Pxx,F] = pwelch(Data',This_Window{:},NOVERLAP,NFFT,Fs);
-        [Cxx,F]=mscohere(Data',Data',This_Window{:},NOVERLAP,NFFT,Fs);
-        plot(Cxx,F)
-        
-        title(Y_Title(Y)+" "+X_Title(X)+" ")
+    This_Window=WINDOW(Y_Title(Y));
+    if ~isfile("1_3-PSD_Diff_"+Y+".svg")
+    NOVERLAP = 1024/4;
+    NFFT = 1024/4;
+    Fs=Sampling_R;
+    FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0.5,0.5,0.5]);
+    tiledlayout(2,3)
+    %Load the data... Now here is the thing. Previously I did pwelch
+    %across the whole data. Now I want to do it fo rsections.
+    for X = 1:length(Chunk)-1
+        nexttile
+        Start_=Chunk(X);
+        End_=Chunk(X+1);
+        Data=ec_v_eo{1};
+        [Pxx_EC,F_EC] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
+        Data=ec_v_eo{2};
+        [Pxx_EO,F_EO] = pwelch(Data(:,Start_:End_)',This_Window{:},NOVERLAP,NFFT,Fs);
+        disp("Power domain of eyes open and closed equal? Ans: " +all(F_EC==F_EO))
+        % Pxx is 129... frequencies at 16 different powers.
+        %The the peaks indicate what spectra hit what power in the window.
+        %x is the freqs, y is power. Peaks in power.
+        Pxx_Diff=Pxx_EC-Pxx_EO;
+        plot(Pxx_Diff(1:20,:))
+        hold on
+        [Max_Vals,Indx]=max(Pxx_Diff,[],1);
+        xline(Indx)
+        title("Chunk "+X)
         LEG=legend("Ch "+[1:min(size(Data))]);
         LEG.Layout.Tile='east';
-        plot(F,Pxx)
+        hold off
+        saveas(FIG,"1_3-PSD_Diff_"+Y,'svg')
+    end
     end
 end
-
+disp("Completed 1.3"+ toc)
 % where X is the data, window the windowfind function, noverlap the amount
 % of overlap between consecutive windows, nfft is the fft-size, and Fs the
 % sampling freuqnecy
@@ -275,32 +300,189 @@ end
 % restricted by setting X-axis limits with the set command
 % (e.g.: set(gca,'xlim',[1 20])
 
+%%
+clear
 % part 2: evoked responses from event-related:data
-% task 2.1: compute and plot the evoked responses from event-related
-% data for sound played to the left and right eye. Do you see the expected
-% effects? That is, sound played to left ear lead to a faster response in
-% the right auditory cortex and vice versa
-% task 2.2: The data contains 175 trials/repetitions of both sounds. How
-% many trials do you need to observe the effects? Are the effects the same
-% across the trials or are there differences between trials across the
-% experiment (e.g. the first 50 or the last 50 trials
-% task 2.3 (bonus): both filtered and unfiltered data are given. Tasks 2.1
-% and 2.2 can be done with filtered data (60Hz low pass-filter), but you can
-% also test different filtering schemes (see e.g. functions butter and
-% filtfilt)) to see how they indluece the outcome.
-
 % first, load the data
 load evoked_data.mat;
-
+%%
 % data (data_sound_left/data_sound_right and data_sound_left_filtered/data_sound_right_filtered) for both sound played to left
 % and right ears at in the form:
 % 2 x 175 x 901
 % where the first dimension indicates different MEG channels, the second
 % different trials and the third different time points
-% time instanses are given in the variable timess (in milliseconds)
+% time instances are given in the variable times (in milliseconds)
 % channel names are given in variables chann1 and chann2
 % note, chann1 (=first row of the MEG data) is over left auditory cortex,
 % chann2(=second row of the MEG data) right
+
+CH_1_avg_L=squeeze(mean(data_sound_left_filtered(1,:,:),2)); %Left auditory cortex
+CH_2_avg_L=squeeze(mean(data_sound_left_filtered(2,:,:),2)); %Right auditory cortex
+
+CH_1_avg_R=squeeze(mean(data_sound_right_filtered(1,:,:),2)); %Left auditory cortex
+CH_2_avg_R=squeeze(mean(data_sound_right_filtered(2,:,:),2)); %Right auditory cortex
+
+
+WINDOW=dictionary();
+
+window_len=200;
+for X ={'periodic','symmetric'}
+    WINDOW("Hanning "+X{:}) = {hanning(window_len,X{:})};
+    WINDOW("Hamming "+X{:}) = {hamming(window_len,X{:})};
+end
+window_keys=keys(WINDOW);
+% task 2.1: compute and plot the evoked responses from event-related
+% data for sound played to the left and right side. Do you see the expected
+% effects? That is, sound played to left ear lead to a faster response in
+% the right auditory cortex and vice versa.
+
+%I like this question, its related to my research. Given its averaged to
+%one channel, I can now do fft on it. Can also pass... not windowing. Would
+%prefer filter...
+% n = 2^nextpow2(length(CH_1_Lavg)); %What is the ideal number of frequencies.
+
+%%
+%Low on time. Would follow matlab fourier transform and explore otherwise.
+for Y = 1:length(window_keys)
+    Key=window_keys(Y);
+    Fig_Name="2-1_avg_trials_L_"+Key+".svg";
+    if ~isfile(Fig_Name)
+        window=WINDOW(Key);
+        window=window{1};
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0,0,0]);
+        tiledlayout(3,1)
+        nexttile
+        [s1, f, t]=spectrogram(CH_1_avg_L,window,100,1024);
+        s1=20*log10(abs(s1));
+        imagesc(t, f, 20*log10(abs(s1)));
+        axis xy;                          % Put low frequencies at the bottom
+        title("Left auditory cortex")
+        ylabel("Frequency (Hz)")
+        xlabel("Time (ms)")
+        nexttile
+        [s2, f, t] =spectrogram(CH_2_avg_L,window,100,1024);
+        s2=20*log10(abs(s2));
+        imagesc(t, f,s2);
+        title("Rigth auditory cortex")
+        axis xy;                          % Put low frequencies at the bottom
+        nexttile
+        imagesc(t, f, abs(s2-s1));
+        title("Diff")
+        axis xy;                         % Put low frequencies at the bottom
+        saveas(FIG,Fig_Name)
+    end
+end
+
+for Y = 1:length(window_keys)
+    Key=window_keys(Y);
+    Fig_Name="2-1_avg_trials_R_"+Key+".svg";
+    if ~isfile(Fig_Name)
+        window=WINDOW(Key);
+        window=window{1};
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0,0,0]);
+        tiledlayout(3,1)
+        nexttile
+        [s1, f, t]=spectrogram(CH_1_avg_R,window,100,1024);
+        s1=20*log10(abs(s1));
+        imagesc(t, f, 20*log10(abs(s1)));
+        axis xy;                          % Put low frequencies at the bottom
+        title("Left auditory cortex")
+        ylabel("Frequency (Hz)")
+        xlabel("Time (ms)")
+        nexttile
+        [s2, f, t] =spectrogram(CH_2_avg_R,window,100,1024);
+        s2=20*log10(abs(s2));
+        imagesc(t, f,s2);
+        title("Rigth auditory cortex")
+        axis xy;                          % Put low frequencies at the bottom
+        nexttile
+        imagesc(t, f, abs(s2-s1));
+        title("Diff")
+        axis xy;                         % Put low frequencies at the bottom
+        saveas(FIG,Fig_Name)
+    end
+end
+disp("2-1_Eyeball Done "+toc)
+%%
+% task 2.2: The data contains 175 trials/repetitions of both sounds. How
+% many trials do you need to observe the effects? Are the effects the same
+% across the trials or are there differences between trials across the
+% experiment (e.g. the first 50 or the last 50 trials
+Key=window_keys(1);
+Fig_Name="2-2_avg_trial_progression_L_"+Key+".svg";
+if ~isfile(Fig_Name)
+    tiledlayout(3,3)
+    for Y = 1:3
+        num_trials=4*Y;
+        CH_1_avg_L=squeeze(mean(data_sound_left_filtered(1,1:num_trials,:),2)); %Left auditory cortex
+        CH_2_avg_L=squeeze(mean(data_sound_left_filtered(2,1:num_trials,:),2)); %Right auditory cortex
+        Suffix=" avg trials"+num_trials;
+        window=WINDOW(Key);
+        window=window{1};
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0,0,0]);
+        tiledlayout(3,1)
+        nexttile
+        [s1, f, t]=spectrogram(CH_1_avg_L,window,100,1024);
+        s1=20*log10(abs(s1));
+        imagesc(t, f, 20*log10(abs(s1)));
+        axis xy;                          % Put low frequencies at the bottom
+        title("Left auditory cortex"+Suffix)
+        ylabel("Frequency (Hz)")
+        xlabel("Time (ms)")
+        nexttile
+        [s2, f, t] =spectrogram(CH_2_avg_L,window,100,1024);
+        s2=20*log10(abs(s2));
+        imagesc(t, f,s2);
+        title("Rigth auditory cortex"+Suffix)
+        axis xy;                          % Put low frequencies at the bottom
+        nexttile
+        imagesc(t, f, abs(s2-s1));
+        title("Diff"+Suffix)
+        axis xy;                         % Put low frequencies at the bottom
+        saveas(FIG,Fig_Name)
+    end
+end
+
+Key=window_keys(1);
+Fig_Name="2-2_avg_trial_progression_R_"+Key+".svg";
+if ~isfile(Fig_Name)
+    tiledlayout(3,3)
+    for Y = 1:3
+        num_trials=4*Y;
+        CH_1_avg_L=squeeze(mean(data_sound_right_filtered(1,1:num_trials,:),2)); %Left auditory cortex
+        CH_2_avg_L=squeeze(mean(data_sound_right_filtered(2,1:num_trials,:),2)); %Right auditory cortex
+        Suffix=" avg trials"+num_trials;
+        window=WINDOW(Key);
+        window=window{1};
+        FIG=figure('Visible', 'off','units','pixels','Position',[300, 100, 2000, 800],Color=[0,0,0]);
+        tiledlayout(3,1)
+        nexttile
+        [s1, f, t]=spectrogram(CH_1_avg_L,window,100,1024);
+        s1=20*log10(abs(s1));
+        imagesc(t, f, 20*log10(abs(s1)));
+        axis xy;                          % Put low frequencies at the bottom
+        title("Left auditory cortex"+Suffix)
+        ylabel("Frequency (Hz)")
+        xlabel("Time (ms)")
+        nexttile
+        [s2, f, t] =spectrogram(CH_2_avg_L,window,100,1024);
+        s2=20*log10(abs(s2));
+        imagesc(t, f,s2);
+        title("Rigth auditory cortex"+Suffix)
+        axis xy;                          % Put low frequencies at the bottom
+        nexttile
+        imagesc(t, f, abs(s2-s1));
+        title("Diff"+Suffix)
+        axis xy;                         % Put low frequencies at the bottom
+        saveas(FIG,Fig_Name)
+    end
+end
+disp("2.2 Done"+toc)
+%%
+% task 2.3 (bonus): both filtered and unfiltered data are given. Tasks 2.1
+% and 2.2 can be done with filtered data (60Hz low pass-filter), but you can
+% also test different filtering schemes (see e.g. functions butter and
+% filtfilt)) to see how they influenced the outcome.
 
 % hints for the analysis
 % 1. you can also see for the individual trials look like, but for this data
